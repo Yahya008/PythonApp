@@ -6,6 +6,7 @@ from StrategyCases.IStrategyHealthCase import IStrategyHealthCase
 
 
 class HyperTensionCase(IStrategyHealthCase):
+
     def __init__(self):
         self.result:Tuple[int, int] = (0, 0) # To save the positive and negative values
         self.CaseName = "Hypertension"
@@ -34,20 +35,26 @@ class HyperTensionCase(IStrategyHealthCase):
 
         return systolic, diastolic
 
-    def Run(self) -> Tuple[int, int]:
+    # Private Method for the class
+    def _GetSplitSystolicAndDiastolic(self) -> Tuple[list[float], list[float], list[float], list[float]]:
         # Get all before/after blood pressure readings
-        old_values = self._GetRequestedFields("Before")
-        new_values = self._GetRequestedFields("After")
+        old_Values = self._GetRequestedFields("Before")
+        new_Values = self._GetRequestedFields("After")
 
         # Split systolic and diastolic separately
-        old_systolic, old_diastolic = self._SplitBpValues(old_values)
-        new_systolic, new_diastolic = self._SplitBpValues(new_values)
+        old_Systolic, old_Diastolic = self._SplitBpValues(old_Values)
+        new_Systolic, new_Diastolic = self._SplitBpValues(new_Values)
+
+        return old_Systolic, new_Systolic, old_Diastolic, new_Diastolic
+
+    def Run(self) -> Tuple[int, int]:
+        old_Systolic,new_Systolic,old_Diastolic,new_Diastolic = self._GetSplitSystolicAndDiastolic()
 
         positiveCounts = 0
         negativeCounts = 0
 
-        for i in range(len(old_systolic)):
-            if new_systolic[i] < old_systolic[i] and new_diastolic[i] < old_diastolic[i]:
+        for i in range(len(old_Systolic)):
+            if new_Systolic[i] < old_Systolic[i] and new_Diastolic[i] < old_Diastolic[i]:
                 positiveCounts += 1
             else:
                 negativeCounts += 1
@@ -63,12 +70,8 @@ class HyperTensionCase(IStrategyHealthCase):
         return f"The hypertension improvement is {ResultAnalyzer.CalculatePercentageBase(self.result):.2f}%"
 
     def TTestCalculator(self) -> str:
-        oldValues = self._GetRequestedFields("Before")
-        newValues = self._GetRequestedFields("After")
-
-        oldSystolicValues, oldDiastolicValues = self._SplitBpValues(oldValues)
-
-        newSystolicValues, newDiastolicValues = self._SplitBpValues(newValues)
+        (oldSystolicValues,newSystolicValues,
+         oldDiastolicValues,newDiastolicValues) = self._GetSplitSystolicAndDiastolic()
 
         sysTTestResult = ResultAnalyzer.TTestCalculatorBase(oldSystolicValues, newSystolicValues,
                                                             self.CaseName + " Systolic")
@@ -78,3 +81,16 @@ class HyperTensionCase(IStrategyHealthCase):
         finalTTestResult = f"{sysTTestResult}\n\n{diasTTestResult}"
 
         return finalTTestResult
+
+    def LinearRegression(self) -> str:
+        old_Values = self._GetRequestedFields("Before")
+        new_Values = self._GetRequestedFields("After")
+
+        old_Systolic, old_Diastolic = self._SplitBpValues(old_Values)
+        new_Systolic, new_Diastolic = self._SplitBpValues(new_Values)
+
+        systolicResult = ResultAnalyzer.LinearRegressionBase(old_Systolic, new_Systolic, self.CaseName)
+
+        diastolicResult = ResultAnalyzer.LinearRegressionBase(old_Diastolic, new_Diastolic,self.CaseName)
+
+        return systolicResult + "\n\n" + diastolicResult

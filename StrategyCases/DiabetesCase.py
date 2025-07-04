@@ -79,3 +79,9 @@ class DiabetesCase(IStrategyHealthCase):
         tTestResult = ResultAnalyzer.TTestCalculatorBase(oldValues, newValues,self.CaseName)
 
         return tTestResult
+
+    def LinearRegression(self) -> str:
+        beforeValues = self._GetRequestedFields("Before")
+        afterValues = self._GetRequestedFields("After")
+
+        return ResultAnalyzer.LinearRegressionBase(beforeValues, afterValues, self.CaseName)

@@ -13,7 +13,8 @@ def AnalyzeCase(iHealthCase:IStrategyHealthCase):
     print(f"✅ Positive Cases: {results[0]}")
     print(f"❌ Negative Cases: {results[1]}")
     print(f"📈 {healthCase.GetPercentage()}")
-    print(f"{healthCase.GetTTestResult()}")
+    print(f"\n{healthCase.GetTTestResult()}\n")
+    print(f"{healthCase.GetLinearRegressionResult()}")
 
 #print(DiabetesCase().TTestCalculator())
 AnalyzeCase(HyperTensionCase())
@@ -22,11 +23,11 @@ AnalyzeCase(HyperTensionCase())
 print("\n\n\n")
 
 print(AnalyzeCase(DiabetesCase()))
-
-lists = [DiabetesCase(),HyperTensionCase()]
-
-chi_result = StatisticalTestCoordinator.RunChiSquare(lists)
-print(chi_result)
+#
+# lists = [DiabetesCase(),HyperTensionCase()]
+#
+# chi_result = StatisticalTestCoordinator.RunChiSquare(lists)
+# print(chi_result)
 
 #[64, 0]
 #[72, 2]

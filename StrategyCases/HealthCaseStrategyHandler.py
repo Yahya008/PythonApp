@@ -18,3 +18,6 @@ class HealthCaseStrategyHandler:
 
     def GetTTestResult(self) -> str:
         return self.strategyHealth.TTestCalculator()
+
+    def GetLinearRegressionResult(self) -> str:
+        return self.strategyHealth.LinearRegression()
