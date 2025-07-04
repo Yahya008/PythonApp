@@ -32,9 +32,6 @@ class ResultAnalyzer:
         allBefore = allBeforeValues
         allAfter = allAfterValues
 
-        print(allBefore)
-        print(allAfter)
-
         if len(allBefore) < 2:
             return f"Not enough data to run T-Test for {caseName}."
 
@@ -73,7 +70,7 @@ class ResultAnalyzer:
 
     @staticmethod
     def LinearRegressionBase(allBeforeValues,allAfterValues,caseName) -> str:
-        if(len(allBeforeValues) < 2):
+        if len(allBeforeValues) < 2:
             return f"Not enough data to run Linear Regression for {caseName}."
 
         x = np.array(allBeforeValues).reshape(-1, 1)

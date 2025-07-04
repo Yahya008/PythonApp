@@ -4,8 +4,6 @@ from StrategyCases.DiabetesCase import DiabetesCase
 from StrategyCases.HealthCaseStrategyHandler import HealthCaseStrategyHandler
 from StrategyCases.HyperTensionCase import HyperTensionCase
 
-print("Another way")
-
 def AnalyzeCase(iHealthCase:IStrategyHealthCase):
     healthCase = HealthCaseStrategyHandler(iHealthCase)
     results = healthCase.GetResultsCase()
@@ -14,20 +12,16 @@ def AnalyzeCase(iHealthCase:IStrategyHealthCase):
     print(f"❌ Negative Cases: {results[1]}")
     print(f"📈 {healthCase.GetPercentage()}")
     print(f"\n{healthCase.GetTTestResult()}\n")
-    print(f"{healthCase.GetLinearRegressionResult()}")
+    cases = [HyperTensionCase(), DiabetesCase()]
+    print(f"\n{StatisticalTestCoordinator.RunChiSquare(cases)}")
+    print(f"\n{healthCase.GetLinearRegressionResult()}")
 
-#print(DiabetesCase().TTestCalculator())
+
 AnalyzeCase(HyperTensionCase())
-#print(HyperTensionCase().TTestCalculator())
 
-print("\n\n\n")
+AnalyzeCase(DiabetesCase())
 
-print(AnalyzeCase(DiabetesCase()))
-#
-# lists = [DiabetesCase(),HyperTensionCase()]
-#
-# chi_result = StatisticalTestCoordinator.RunChiSquare(lists)
-# print(chi_result)
+
 
 #[64, 0]
 #[72, 2]
