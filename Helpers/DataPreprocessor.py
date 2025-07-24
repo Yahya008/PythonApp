@@ -13,7 +13,7 @@ class DataPreprocessor:
         rows = DataPreprocessor.ExtractRowsFields(filtered)
 
         # 3. Validate required fields
-        DataPreprocessor.ValidateRequiredFields(rows, requiredFields)
+        ValidateRequiredFields(rows, requiredFields)
 
         return rows
 
@@ -25,7 +25,6 @@ class DataPreprocessor:
         """
         return [row for _, row in dataFrame.iterrows()]
 
-    # To ask him about if there is any missing values
     @staticmethod
     def ValidateRequiredFields(rows, fields: list):
         for row in rows:
@@ -33,4 +32,3 @@ class DataPreprocessor:
                 value = row.get(field)
                 if pd.isna(value) or value is None or (isinstance(value, str) and value.strip() == ""):
                     raise ValueError(f"Missing required filed '{field}' in patient ID {row.get('Patient_ID')}")
-

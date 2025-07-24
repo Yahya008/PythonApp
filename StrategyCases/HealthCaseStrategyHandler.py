@@ -7,8 +7,7 @@ class HealthCaseStrategyHandler:
         self.strategyHealth = strategyHealth
 
     def GetResultsCase(self) -> Tuple[int, int]:
-        healthCases = self.strategyHealth.Run()
-        return healthCases
+        return self.strategyHealth.Run()
 
     def GetPercentage(self) -> str:
         return self.strategyHealth.CalculatePercentage()
@@ -21,3 +20,6 @@ class HealthCaseStrategyHandler:
 
     def GetLinearRegressionResult(self) -> str:
         return self.strategyHealth.LinearRegression()
+
+    def GetAnovaTestResult(self, groupByColumn: str, beforeOrAfter: str) -> str:
+        return self.strategyHealth.AnovaTestBy(groupByColumn, beforeOrAfter)

@@ -6,44 +6,68 @@ from StrategyCases.IStrategyHealthCase import IStrategyHealthCase
 
 
 class HyperTensionCase(IStrategyHealthCase):
-
     def __init__(self):
         self.result:Tuple[int, int] = (0, 0) # To save the positive and negative values
         self.CaseName = "Hypertension"
         self.requiredFields = ["BP_Before", "BP_After"] # requestedField for the systolic or diastolic
-        self.hyperTensionsRows = DataPreprocessor.LoadCaseByConditionFromExcel("Condition", self.CaseName, self.requiredFields)
 
-    #Private Method for the class
-    def _GetRequestedFields(self, userRequestedField : str) -> list[float]:
-        hyperTensionsValues = []
+    # Private Method for the class
+    def _GetRequestedColumnValues(self,userRequestedField: str, conditionFilter: dict[str, str]) -> list[float]:
 
-        for hyperTensionRow in self.hyperTensionsRows:
-            before_bp = ValueParser.ParseBloodPressure(hyperTensionRow[f"BP_{userRequestedField}"])
-            hyperTensionsValues.append(before_bp)
-            #[160 , 100] integer type
-            #systolic,diastolic = before_bp
+        rows = DataPreprocessor.LoadCaseByConditionFromExcel(column=conditionFilter["Column"],
+                                                             value=conditionFilter["Value"],
+                                                             requiredFields=self.requiredFields)
 
-        return hyperTensionsValues
+        values = []
+        for row in rows:
+            value = row.get(f"BP_{userRequestedField}")
+            if value is None or str(value).strip() == "":
+                continue
+            try:
+                values.append(list(ValueParser.ParseBloodPressure(value)))  # returns (systolic, diastolic)
+            except:
+                continue
 
-    #Private Method for the class
-    def _SplitBpValues(self, hyperTensionsValues) -> tuple[list[float],list[float]]:
-        systolic = []
-        diastolic = []
-        for sys, dias in hyperTensionsValues:
-            systolic.append(sys)
-            diastolic.append(dias)
+        return values #[[160, 100], [146, 96], [144, 91], [153, 90]]
 
-        return systolic, diastolic
+    def _GroupBpByColumn(self, groupByColumn:str, valueField:str, conditionFilter:dict[str, str]) -> dict[str, list[float]]:
+
+        rows = DataPreprocessor.LoadCaseByConditionFromExcel(column=conditionFilter["Column"],
+                                                             value=conditionFilter["Value"],
+                                                             requiredFields=self.requiredFields)
+
+        grouped = dict()
+
+        for row in rows:
+            groupKey = row.get(groupByColumn)
+            value = row.get(valueField)
+
+            if not groupKey or value is None or str(value).strip() == "":
+                continue
+
+            try:
+                parsedBpValue = ValueParser.ParseBloodPressure(value)
+            except:
+                continue
+
+            # Initialize list if key doesn't exist, then ALWAYS append
+            if groupKey not in grouped:
+                grouped[groupKey] = []
+            grouped[groupKey].append(tuple(parsedBpValue)) # Now appends all valid values
+
+        return grouped
 
     # Private Method for the class
     def _GetSplitSystolicAndDiastolic(self) -> Tuple[list[float], list[float], list[float], list[float]]:
         # Get all before/after blood pressure readings
-        old_Values = self._GetRequestedFields("Before")
-        new_Values = self._GetRequestedFields("After")
+        old_Values = self._GetRequestedColumnValues("Before",{"Column": "Condition", "Value": self.CaseName})
+        new_Values = self._GetRequestedColumnValues("After",{"Column": "Condition", "Value": self.CaseName})
 
-        # Split systolic and diastolic separately
-        old_Systolic, old_Diastolic = self._SplitBpValues(old_Values)
-        new_Systolic, new_Diastolic = self._SplitBpValues(new_Values)
+        # Helper lambda to split systolic/diastolic values from tuples
+        splitBpValues = lambda values: ([sys for sys, _ in values], [dias for _, dias in values])
+
+        old_Systolic, old_Diastolic = splitBpValues(old_Values)
+        new_Systolic, new_Diastolic = splitBpValues(new_Values)
 
         return old_Systolic, new_Systolic, old_Diastolic, new_Diastolic
 
@@ -60,7 +84,7 @@ class HyperTensionCase(IStrategyHealthCase):
                 negativeCounts += 1
 
         self.result = (positiveCounts, negativeCounts)
-        # Save the result inside the object
+
         return self.result
 
     def GetCaseName(self) -> str:
@@ -83,14 +107,26 @@ class HyperTensionCase(IStrategyHealthCase):
         return finalTTestResult
 
     def LinearRegression(self) -> str:
-        old_Values = self._GetRequestedFields("Before")
-        new_Values = self._GetRequestedFields("After")
-
-        old_Systolic, old_Diastolic = self._SplitBpValues(old_Values)
-        new_Systolic, new_Diastolic = self._SplitBpValues(new_Values)
+        old_Systolic, new_Systolic, old_Diastolic, new_Diastolic = self._GetSplitSystolicAndDiastolic()
 
         systolicResult = ResultAnalyzer.LinearRegressionBase(old_Systolic, new_Systolic, self.CaseName)
-
         diastolicResult = ResultAnalyzer.LinearRegressionBase(old_Diastolic, new_Diastolic,self.CaseName)
 
         return systolicResult + "\n\n" + diastolicResult
+
+    def AnovaTestBy(self, group_by_column: str, value_column: str) -> str:
+        grouped = self._GroupBpByColumn(group_by_column, value_column, {
+            "Column": "Condition", "Value": self.CaseName
+        })
+
+        if value_column.endswith("Before"):
+            index = 0
+        else:
+            index = 1
+
+        # Extract systolic or diastolic values only
+        groupedCleaned = {
+            k:[bp[index] for bp in v] for k, v in grouped.items()
+        }
+
+        return ResultAnalyzer.AnovaTestBase(*groupedCleaned.values())

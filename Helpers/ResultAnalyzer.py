@@ -1,7 +1,7 @@
 from sklearn.linear_model import LinearRegression
 from scipy.stats import ttest_rel
 from scipy.stats import chi2_contingency
-import sklearn.linear_model
+from scipy.stats import f_oneway
 import numpy as np
 
 class ResultAnalyzer:
@@ -15,20 +15,6 @@ class ResultAnalyzer:
 
     @staticmethod
     def TTestCalculatorBase(allBeforeValues,allAfterValues,caseName) -> str:
-        #This one should contain the rows from the excel
-        #this method will be called twice once for the systolic and once for the diastolic if needed
-
-        #allBeforeValues => [ beforeSystolic ] [160]
-        #allAfterValues => [aftersystolic] [120]
-
-        #and if we want to study the diastolic we call it twice by identifying the case
-        # allBeforeValues => [ beforeDiastolic ] [160]
-        # allAfterValues => [ afterDiastolic ] [120]
-
-        #diabetes
-        #allBeforeValues => [8.9]
-        #allAfterValues => [6.8]
-
         allBefore = allBeforeValues
         allAfter = allAfterValues
 
@@ -95,5 +81,30 @@ class ResultAnalyzer:
             result += "⚠️ Moderate linear relationship."
         else:
             result += "❌ Weak or no linear relationship."
+
+        return result
+
+    @staticmethod
+    #*groups: list[float]=>Accept multiple list[float] arguments
+    def AnovaTestBase(*groupsOfValues:list[float]) -> str:
+        if len(groupsOfValues) < 2:
+            return "Not enough data need at least 2 groups for ANOVA test."
+
+        # Check if each group has at least 2 values
+        if any(len(group) < 2 for group in groupsOfValues):
+            return "Each group must have at least 2 data points."
+
+        f_stat, p_val = f_oneway(*groupsOfValues)
+
+        result = (
+            f"📊 ANOVA Test Results:\n"
+            f"🧪 F-statistic: {f_stat:.4f}\n"
+            f"📉 p-value: {p_val:.4f}\n"
+        )
+
+        if p_val < 0.05:
+            result += "✅ At least one group has a significantly different mean."
+        else:
+            result += "❌ No significant difference between group means."
 
         return result

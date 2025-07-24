@@ -10,51 +10,58 @@ class DiabetesCase(IStrategyHealthCase):
         self.result:Tuple[int, int] = (0, 0) # To save the positive and negative values
         self.CaseName = "Diabetes"
         self.requiredFields = ["HbA1c_Before", "HbA1c_After"]
-        self.diabetesRows = DataPreprocessor.LoadCaseByConditionFromExcel("Condition", self.CaseName, self.requiredFields)
 
-    #This is a private method no one can call this function
-    def _GetRequestedFields(self, userRequestedField : str) -> list[float]:
+    #This private method responsible to return the HbA1c values(Before and After)
+    def _GetRequestedColumnValues(self, userRequestedField: str, conditionFilter: dict[str, str])-> list[float]:
+
+        rows = DataPreprocessor.LoadCaseByConditionFromExcel(column=conditionFilter["Column"],
+                                                             value=conditionFilter["Value"],
+                                                             requiredFields=self.requiredFields)
+
         values = []
-
-        for diabeteRow in self.diabetesRows:
-            diabetesValues = ValueParser.StripRemover(diabeteRow[f"HbA1c_{userRequestedField}"])
-            values.append(diabetesValues)
-            #[8.9] integer type
-            #[9.2, 8.7, 8.2, 8.2, 8.5, 8.5]
-
-        #Adding dummy values to test the negative result
-        if userRequestedField.__eq__("Before"):
-            values.append(3.5)
-            values.append(2.8)
-            values.append(1.6)
-            values.append(2.5)
-            values.append(4.8)
-            values.append(3.6)
-
-        if userRequestedField.__eq__("After"):
-            values.append(7.5)
-            values.append(9.8)
-            values.append(10.6)
-            values.append(12.5)
-            values.append(13.8)
-            values.append(15.6)
+        for row in rows:
+            value = row.get(f"HbA1c_{userRequestedField}")
+            if value is None or str(value).strip() == "":
+                continue
+            try:
+                values.append(ValueParser.StripRemover(value))
+            except:
+                continue
 
         return values
 
+    #This private method responsible to group a given column name with a given row values
+    def _GroupRowsByColumnValueNew(self, groupByColumn:str, valueField:str, conditionFilter:dict[str, str])-> dict[str, list[float]]:
+        rows = DataPreprocessor.LoadCaseByConditionFromExcel(column=conditionFilter["Column"],
+                                                             value=conditionFilter["Value"],
+                                                             requiredFields=self.requiredFields + [groupByColumn])
+
+        grouped = dict()
+        for row in rows:
+            groupKey = row.get(groupByColumn)
+            value = row.get(valueField)
+
+            if not groupKey or value is None or str(value).strip() == "":
+                continue
+
+            try:
+                parsedValue = ValueParser.StripRemover(value)
+            except:
+                continue
+
+            if groupKey not in grouped:
+                grouped[groupKey] = []
+            grouped[groupKey].append(parsedValue)
+
+        return grouped
+
+    #This is method responsible to return the positive and negative cases
     def Run(self) -> Tuple[int, int]:
-        # Get all before/after HbA1c readings
-        old_Values = self._GetRequestedFields("Before")
-        new_Values = self._GetRequestedFields("After")
+        old_Values = self._GetRequestedColumnValues("Before", {"Column": "Condition", "Value": self.CaseName})
+        new_Values = self._GetRequestedColumnValues("After", {"Column": "Condition", "Value": self.CaseName})
 
         positiveCounts = 0
         negativeCounts = 0
-
-        #Explaining the zip:
-        #old_Values = [9.2, 8.4, 7.1] #new_Values = [7.1, 6.8, 6.5]
-        #old_Values[0] compare new_Values[0]
-        # 9.2 compare 7.1
-        # 8.4 compare 6.8
-        # 7.1 compare 6.5
 
         for oldResult,newResult in zip(old_Values, new_Values):
             if oldResult > newResult:
@@ -63,7 +70,6 @@ class DiabetesCase(IStrategyHealthCase):
                 negativeCounts += 1
 
         self.result = (positiveCounts, negativeCounts)
-        # Save the result inside the object
         return self.result
 
     def GetCaseName(self) -> str:
@@ -73,15 +79,22 @@ class DiabetesCase(IStrategyHealthCase):
         return f"The diabetes improvement is {ResultAnalyzer.CalculatePercentageBase(self.result):.2f}%"
 
     def TTestCalculator(self) -> str:
-        oldValues = self._GetRequestedFields("Before")
-        newValues = self._GetRequestedFields("After")
+        oldValues = self._GetRequestedColumnValues("Before", {"Column": "Condition", "Value": self.CaseName})
+        newValues = self._GetRequestedColumnValues("After", {"Column": "Condition", "Value": self.CaseName})
 
-        tTestResult = ResultAnalyzer.TTestCalculatorBase(oldValues, newValues,self.CaseName)
+        tTestResult = ResultAnalyzer.TTestCalculatorBase(oldValues, newValues, self.CaseName)
 
         return tTestResult
 
     def LinearRegression(self) -> str:
-        beforeValues = self._GetRequestedFields("Before")
-        afterValues = self._GetRequestedFields("After")
+        beforeValues = self._GetRequestedColumnValues("Before", {"Column": "Condition", "Value": self.CaseName})
+        afterValues = self._GetRequestedColumnValues("After", {"Column": "Condition", "Value": self.CaseName})
 
         return ResultAnalyzer.LinearRegressionBase(beforeValues, afterValues, self.CaseName)
+
+    def AnovaTestBy(self, groupByColumn: str, beforeOrAfter: str) -> str:
+        valueColumn = f"HbA1c_{beforeOrAfter}"
+        grouped = self._GroupRowsByColumnValueNew(groupByColumn, valueColumn,
+                                                 conditionFilter={"Column": "Condition", "Value": self.CaseName})
+
+        return ResultAnalyzer.AnovaTestBase(*grouped.values())

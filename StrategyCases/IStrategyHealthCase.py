@@ -18,10 +18,6 @@ class IStrategyHealthCase(ABC): # This is like an interface
         pass
 
     @abstractmethod
-    def _GetRequestedFields(self, requestedField : str) -> list[float]:
-        pass
-
-    @abstractmethod
     def TTestCalculator(self) -> str:
         pass
 
@@ -29,5 +25,8 @@ class IStrategyHealthCase(ABC): # This is like an interface
     def LinearRegression(self) -> str:
         pass
 
+    @abstractmethod
+    def AnovaTestBy(self,group_by_column: str, value_column: str) -> str:
+        pass
 
 #Any class like DiabetesCase or HyperTensionCase that extends IStrategyCase must define all these functions:

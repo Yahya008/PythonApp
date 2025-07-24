@@ -9,6 +9,14 @@ class ValueParser:
         systolic,diastolic = map(int,bp.split("/"))
         return [systolic,diastolic]
 
+
+
+
+
+
+
+
+
     # Before: 160 / 100
     # After: 124 / 87
 
